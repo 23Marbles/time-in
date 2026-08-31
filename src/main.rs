@@ -1,4 +1,7 @@
-use std::env;
+use std::{
+    env,
+    io::{Write, stdout},
+};
 
 use chrono::{Datelike, Local, TimeDelta};
 
@@ -14,7 +17,27 @@ fn main() -> color_eyre::Result<()> {
 
     let mut delta_secs = 0;
 
+    let mut show_date = false;
+    let mut show_duration = false;
+    let mut show_weekday = false;
+
     for arg in args.skip(1) {
+        match arg.as_str() {
+            "--use-date" | "--date" | "-da" => {
+                show_date = true;
+                continue;
+            }
+            "--show-weekday" | "--weekday" | "-wd" => {
+                show_weekday = true;
+                continue;
+            }
+            "--show-duration" | "--duration" | "--dur" | "-du" => {
+                show_duration = true;
+                continue;
+            }
+            _ => {}
+        };
+
         let secs = match split_snippet(&arg) {
             Ok((k, n)) => match k {
                 TimeKind::Secs => n,
@@ -62,10 +85,22 @@ fn main() -> color_eyre::Result<()> {
 
     let then = now + TimeDelta::seconds(secs);
 
-    println!(
-        "The time will be {} {} in {}",
-        then.format("%-l:%M %p"),
-        {
+    let mut stdout = stdout().lock();
+
+    write!(
+        &mut stdout,
+        "The time will be {} ",
+        then.format("%-l:%M %p")
+    )?;
+
+    if show_weekday {
+        write!(&mut stdout, "on {}", then.format("%A"))?;
+    }
+
+    if show_date {
+        write!(&mut stdout, "on {}", then.format("%x"))?;
+    } else {
+        write!(&mut stdout, "{}", {
             let now_days = now.num_days_from_ce();
             let then_days = then.num_days_from_ce();
             match then_days - now_days {
@@ -73,9 +108,14 @@ fn main() -> color_eyre::Result<()> {
                 1 => "tommorow".to_string(),
                 n => format!("{n} days from now"),
             }
-        },
-        TimeDeltaFormatter::seconds(secs)
-    );
+        })?;
+    }
+
+    if show_duration {
+        write!(&mut stdout, " in {}", TimeDeltaFormatter::seconds(secs))?;
+    }
+
+    stdout.flush()?;
 
     Ok(())
 }
