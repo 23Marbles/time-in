@@ -115,7 +115,7 @@ fn main() -> color_eyre::Result<()> {
         write!(&mut stdout, " in {}", TimeDeltaFormatter::seconds(secs))?;
     }
 
-    stdout.flush()?;
+    writeln!(&mut stdout)?;
 
     Ok(())
 }
