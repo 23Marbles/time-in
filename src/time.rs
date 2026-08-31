@@ -18,7 +18,11 @@ impl Display for TimeDeltaFormatter {
                 return None;
             }
 
-            Some(format!("{num} {suffix}"))
+            Some(format!("{num} {suffix}{}", if num == 1 {
+                ""
+            } else {
+                "s"
+            }))
         }
 
         let rem = self.secs;
@@ -31,11 +35,11 @@ impl Display for TimeDeltaFormatter {
 
         let iter = [
             #[cfg(feature = "show_weeks")]
-            with_suffix_if_not_zero(weeks, "week(s)"),
-            with_suffix_if_not_zero(days, "day(s)"),
-            with_suffix_if_not_zero(hours, "hour(s)"),
-            with_suffix_if_not_zero(mins, "minute(s)"),
-            with_suffix_if_not_zero(secs, "second(s)"),
+            with_suffix_if_not_zero(weeks, "week"),
+            with_suffix_if_not_zero(days, "day"),
+            with_suffix_if_not_zero(hours, "hour"),
+            with_suffix_if_not_zero(mins, "minute"),
+            with_suffix_if_not_zero(secs, "second"),
         ];
 
         let vec: Vec<String> = iter.into_iter().flatten().collect();
