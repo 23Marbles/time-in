@@ -16,7 +16,7 @@ fn main() -> color_eyre::Result {
         (TimeValue::Duration(naive_duration), fmt, show_true_time_passage) => {
             let then = naive_duration
                 .datetime_checked_add(now.with_timezone(&chrono::Utc))
-                .ok_or(StaticStrError("Failed finding adding duration to datetime"))?;
+                .ok_or(StaticStrError("Failed adding duration to datetime"))?;
 
             match (naive_duration.is_zero(), naive_duration.is_neg()) {
                 (true, _) => print!("The time is {}", fmt.format_datetime(&then)),
@@ -36,7 +36,39 @@ fn main() -> color_eyre::Result {
                 println!();
             }
         }
-        (TimeValue::DateTime(_naive_date_time), _fmt, _) => todo!(),
+        (TimeValue::DateTime(naive_date_time), fmt, _) => {
+            let time_utc = if let Some(tz) = fmt.timezone {
+                naive_date_time
+                    .and_local_timezone(tz)
+                    .single()
+                    .expect("ambiguous or invalid local time")
+                    .to_utc()
+            } else {
+                naive_date_time.and_utc()
+            };
+
+            let now_utc = now.to_utc();
+
+            // time_utc is in the past
+            if now_utc > time_utc {
+                let delta = now_utc.signed_duration_since(time_utc);
+
+                println!(
+                    "{} was {} ago",
+                    fmt.format_datetime(&time_utc),
+                    fmt.format_duration(delta),
+                );
+            } else if now_utc < time_utc {
+                let delta = time_utc.signed_duration_since(now_utc);
+
+                println!(
+                    "It is {} until {}",
+                    fmt.format_duration(delta),
+                    fmt.format_datetime(&time_utc),
+                );
+            } else {
+            }
+        }
     }
 
     Ok(())

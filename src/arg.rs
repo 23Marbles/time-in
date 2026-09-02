@@ -56,7 +56,7 @@ pub enum Command {
     },
 
     /// Finds the duration to a date time.
-    #[command(visible_alias = "since", visible_alias = "till")]
+    #[command(visible_alias = "since", visible_alias = "until", alias = "till")]
     To {
         date: DateParser,
         time: TimeParser,
