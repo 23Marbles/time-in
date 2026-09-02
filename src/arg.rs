@@ -1,7 +1,10 @@
-use chrono::NaiveDateTime;
+use std::str::FromStr;
+
+use chrono::{Local, NaiveDateTime};
 use chrono_tz::Tz;
 
 use crate::{
+    StringError,
     format::Format,
     parse::{DateParser, TimeParser},
     time::{NaiveDuration, TimeUnitDur, TimeValue},
@@ -58,12 +61,59 @@ pub enum Command {
     /// Finds the duration to a date time.
     #[command(visible_alias = "since", visible_alias = "until", alias = "till")]
     To {
-        date: DateParser,
-        time: TimeParser,
+        #[arg(num_args = 1..=2)]
+        datetime: Vec<TimeOrDateParser>,
 
         #[command(flatten)]
         options: CommonOptions,
     },
+}
+
+#[derive(Debug, Clone)]
+pub enum TimeOrDateParser {
+    Date(DateParser),
+    Time(TimeParser),
+}
+
+impl FromStr for TimeOrDateParser {
+    type Err = StringError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        if let Ok(date) = DateParser::from_str(s) {
+            Ok(Self::Date(date))
+        } else if let Ok(time) = TimeParser::from_str(s) {
+            Ok(Self::Time(time))
+        } else {
+            Err(StringError(format!(
+                "Failed to parse `{s}` as either date or time"
+            )))
+        }
+    }
+}
+
+pub fn datetime_from_time_or_dates(
+    mut time_or_dates: impl Iterator<Item = TimeOrDateParser>,
+) -> Result<NaiveDateTime, StringError> {
+    let first_val = time_or_dates.next().ok_or(StringError(
+        "Need at least one time or date, got none".to_string(),
+    ))?;
+
+    let (date, time) = match (first_val, time_or_dates.next()) {
+        (TimeOrDateParser::Date(date), None) => (date.0, Local::now().naive_local().time()),
+        (TimeOrDateParser::Time(time), None) => (Local::now().naive_local().date(), time.0),
+
+        (TimeOrDateParser::Date(date), Some(TimeOrDateParser::Time(time)))
+        | (TimeOrDateParser::Time(time), Some(TimeOrDateParser::Date(date))) => (date.0, time.0),
+
+        (TimeOrDateParser::Date(_), Some(TimeOrDateParser::Date(_))) => {
+            return Err(StringError("Two dates found".to_string()));
+        }
+        (TimeOrDateParser::Time(_), Some(TimeOrDateParser::Time(_))) => {
+            return Err(StringError("Two times found".to_string()));
+        }
+    };
+
+    Ok(NaiveDateTime::new(date, time))
 }
 
 impl Command {
@@ -95,12 +145,8 @@ impl Command {
                 options.format.with_timezone(options.timezone),
                 show_duration,
             ),
-            Command::To {
-                date,
-                time,
-                options,
-            } => (
-                TimeValue::DateTime(NaiveDateTime::new(date.0, time.0)),
+            Command::To { datetime, options } => (
+                TimeValue::DateTime(datetime_from_time_or_dates(datetime.into_iter()).ok()?),
                 options.format.with_timezone(options.timezone),
                 false,
             ),
@@ -119,8 +165,8 @@ impl Command {
             Command::Past { duration, .. } => TimeValue::Duration(
                 NaiveDuration::from_time_unit_durs(duration.iter())?.flip_sign(),
             ),
-            Command::To { date, time, .. } => {
-                TimeValue::DateTime(NaiveDateTime::new(date.0, time.0))
+            Command::To { datetime, .. } => {
+                TimeValue::DateTime(datetime_from_time_or_dates(datetime.iter().cloned()).ok()?)
             }
         })
     }

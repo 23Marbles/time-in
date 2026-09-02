@@ -19,6 +19,10 @@ pub mod time;
 #[error("{0}")]
 pub struct StaticStrError(pub &'static str);
 
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, thiserror::Error)]
+#[error("{0}")]
+pub struct StringError(pub String);
+
 #[expect(dead_code)]
 #[deprecated]
 fn old_main() -> color_eyre::Result<()> {
