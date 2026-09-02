@@ -214,7 +214,7 @@ where
     #[arg(long, default_value_t = TimeFormatter::default())]
     pub time_formatter: TimeFormatter,
 
-    #[arg(long)]
+    #[arg(long, visible_alias = "show-tz")]
     pub show_timezone: bool,
 
     #[arg(skip)]
