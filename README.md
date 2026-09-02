@@ -27,5 +27,3 @@ Finds the true duration of a naive duration of time.
 ## Info
 
 Shows info about a time.
-
-

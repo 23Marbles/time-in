@@ -1,16 +1,170 @@
-use std::{
-    fmt::Display,
-    num::{IntErrorKind, ParseIntError},
-};
+use std::fmt::Display;
 
+use chrono::{DateTime, Days, Months, NaiveDateTime, TimeDelta, TimeZone};
 use num_integer::Integer;
-use thiserror::Error;
 
+pub enum TimeValue {
+    Duration(NaiveDuration),
+    DateTime(NaiveDateTime),
+}
+
+/// Includes measurement for changeable lengths of time months
+#[derive(Debug, Default, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
+pub struct NaiveDuration {
+    is_neg: bool,
+    months: u32,
+    days: u64,
+    standard: TimeDelta,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct TimeUnitDur {
+    pub duration: i64,
+    pub time_kind: TimeKind,
+}
+
+impl NaiveDuration {
+    #[must_use]
+    pub fn is_neg(&self) -> bool {
+        self.is_neg
+    }
+
+    #[must_use]
+    pub fn is_zero(&self) -> bool {
+        self.months == 0 && self.days == 0 && self.standard.is_zero()
+    }
+
+    pub fn datetime_checked_add<Tz: TimeZone>(
+        self,
+        mut datetime: DateTime<Tz>,
+    ) -> Option<DateTime<Tz>> {
+        let Self {
+            months,
+            days,
+            standard,
+            is_neg,
+        } = self;
+
+        datetime = datetime.checked_add_signed(standard)?;
+
+        let months = Months::new(months);
+        let days = Days::new(days);
+
+        if is_neg {
+            datetime = datetime.checked_sub_months(months)?;
+            datetime = datetime.checked_sub_days(days)?;
+        } else {
+            datetime = datetime.checked_add_months(months)?;
+            datetime = datetime.checked_add_days(days)?;
+        }
+
+        Some(datetime)
+    }
+
+    pub fn from_time_unit_durs<'a>(durs: impl Iterator<Item = &'a TimeUnitDur>) -> Option<Self> {
+        let mut this = Self::default();
+
+        for d in durs {
+            match d.time_kind {
+                TimeKind::Secs => this = this.add_seconds(d.duration)?,
+                TimeKind::Mins => this = this.add_minutes(d.duration)?,
+                TimeKind::Hours => this = this.add_hours(d.duration)?,
+                TimeKind::Days => this = this.add_days(d.duration.try_into().ok()?)?,
+                TimeKind::Weeks => this = this.add_weeks(d.duration.try_into().ok()?)?,
+                TimeKind::Months => this = this.add_months(d.duration.try_into().ok()?)?,
+                TimeKind::Years => this = this.add_years(d.duration.try_into().ok()?)?,
+            }
+        }
+
+        Some(this)
+    }
+
+    #[must_use]
+    pub fn flip_sign(self) -> Self {
+        Self {
+            is_neg: !self.is_neg,
+            standard: -self.standard,
+            ..self
+        }
+    }
+
+    #[must_use]
+    pub fn add_years(mut self, years: u32) -> Option<Self> {
+        self.months = self.months.checked_add(years.checked_mul(12)?)?;
+
+        Some(self)
+    }
+
+    #[must_use]
+    pub fn add_months(mut self, months: u32) -> Option<Self> {
+        self.months = self.months.checked_add(months)?;
+
+        Some(self)
+    }
+
+    #[must_use]
+    pub fn add_weeks(mut self, weeks: u64) -> Option<Self> {
+        self.days = self.days.checked_add(weeks.checked_mul(7)?)?;
+
+        Some(self)
+    }
+
+    #[must_use]
+    pub fn add_days(mut self, days: u64) -> Option<Self> {
+        self.days = self.days.checked_add(days)?;
+
+        Some(self)
+    }
+
+    #[must_use]
+    pub fn add_hours(mut self, hours: i64) -> Option<Self> {
+        self.standard = self.standard.checked_add(&TimeDelta::try_hours(hours)?)?;
+
+        Some(self)
+    }
+
+    #[must_use]
+    pub fn add_minutes(mut self, minutes: i64) -> Option<Self> {
+        self.standard = self
+            .standard
+            .checked_add(&TimeDelta::try_minutes(minutes)?)?;
+
+        Some(self)
+    }
+
+    #[must_use]
+    pub fn add_seconds(mut self, seconds: i64) -> Option<Self> {
+        self.standard = self
+            .standard
+            .checked_add(&TimeDelta::try_seconds(seconds)?)?;
+
+        Some(self)
+    }
+}
+
+pub const WEEK_IN_SECS: i64 = DAY_IN_SECS * 7;
+pub const DAY_IN_SECS: i64 = HOUR_IN_SECS * 24;
+pub const HOUR_IN_SECS: i64 = MIN_IN_SECS * 60;
+pub const MIN_IN_SECS: i64 = 60;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub enum TimeKind {
+    Secs,
+    Mins,
+    Hours,
+    Days,
+    Weeks,
+    Months,
+    Years,
+}
+
+#[deprecated]
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TimeDeltaFormatter {
     secs: i64,
 }
 
+#[expect(deprecated)]
 impl Display for TimeDeltaFormatter {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         fn with_suffix_if_not_zero(num: i64, suffix: &str) -> Option<String> {
@@ -18,11 +172,7 @@ impl Display for TimeDeltaFormatter {
                 return None;
             }
 
-            Some(format!("{num} {suffix}{}", if num == 1 {
-                ""
-            } else {
-                "s"
-            }))
+            Some(format!("{num} {suffix}{}", if num == 1 { "" } else { "s" }))
         }
 
         let rem = self.secs;
@@ -67,112 +217,10 @@ impl Display for TimeDeltaFormatter {
     }
 }
 
+#[expect(deprecated)]
 impl TimeDeltaFormatter {
+    #[must_use]
     pub fn seconds(secs: i64) -> Self {
         Self { secs }
     }
-}
-
-pub const WEEK_IN_SECS: i64 = DAY_IN_SECS * 7;
-pub const DAY_IN_SECS: i64 = HOUR_IN_SECS * 24;
-pub const HOUR_IN_SECS: i64 = MIN_IN_SECS * 60;
-pub const MIN_IN_SECS: i64 = 60;
-
-#[derive(Debug, Clone, Error)]
-pub enum ArgParseError {
-    #[error("empty string inputted")]
-    EmptyStr,
-    #[error("no suffix part found in the snippet `0`")]
-    NoSuffixPart(String),
-    #[error("suffix `{suffix}` not recognized in snippet `{snippet}`{}", if suggestions.is_empty() {
-        String::new()
-    } else {
-        format!("\nmaybe you meant one of:\n{}", suggestions.join(",\n - "))
-    })]
-    UnknownSuffix {
-        suffix: String,
-        snippet: String,
-        suggestions: Vec<String>,
-    },
-    #[error("no digit part found in snippet `{0}`")]
-    NoDigitPart(String),
-    #[error("digit part specifies a number too large (`{0}`)")]
-    DigitTooLarge(String),
-}
-
-pub enum TimeKind {
-    Secs,
-    Mins,
-    Hours,
-    Days,
-    Weeks,
-}
-
-pub fn split_snippet(snippet: &str) -> Result<(TimeKind, i64), ArgParseError> {
-    if snippet.is_empty() {
-        return Err(ArgParseError::EmptyStr);
-    }
-
-    let split = snippet
-        .find(|ch: char| !ch.is_ascii_digit())
-        .ok_or(ArgParseError::NoSuffixPart(snippet.to_owned()))?;
-
-    let (prefix, suffix) = snippet.split_at(split);
-
-    let count: i64 = prefix.parse().map_err(|e: ParseIntError| match e.kind() {
-        IntErrorKind::Empty => ArgParseError::NoDigitPart(snippet.to_owned()),
-        IntErrorKind::InvalidDigit => unreachable!("must be ascii digit"),
-        IntErrorKind::PosOverflow => ArgParseError::DigitTooLarge(prefix.to_owned()),
-        IntErrorKind::NegOverflow => unreachable!("does not have a negative part"),
-        IntErrorKind::Zero => unreachable!("is not a NonZero<T>"),
-        _ => unreachable!(),
-    })?;
-
-    Ok((
-        match suffix {
-            "w" | "weeks" => TimeKind::Weeks,
-            "d" | "days" => TimeKind::Days,
-            "h" | "hours" => TimeKind::Hours,
-            "m" | "mins" | "minutes" => TimeKind::Mins,
-            "s" | "secs" | "seconds" => TimeKind::Secs,
-            s => {
-                return Err(ArgParseError::UnknownSuffix {
-                    suffix: s.to_owned(),
-                    snippet: snippet.to_owned(),
-                    suggestions: {
-                        let mut vec = Vec::new();
-
-                        if s.contains('w') {
-                            vec.push("weeks".to_string());
-                        }
-
-                        if s.contains('d') {
-                            vec.push("days".to_string());
-                        }
-
-                        if s.contains('h') {
-                            vec.push("hours".to_string());
-                        }
-
-                        if s.contains('m') {
-                            vec.push("mins".to_string());
-                        }
-
-                        let trimmed_last = &s[..s
-                            .char_indices()
-                            .next_back()
-                            .ok_or(ArgParseError::NoSuffixPart(snippet.to_owned()))?
-                            .0];
-
-                        if trimmed_last.contains('s') {
-                            vec.push("secs".to_owned());
-                        }
-
-                        vec
-                    },
-                });
-            }
-        },
-        count,
-    ))
 }

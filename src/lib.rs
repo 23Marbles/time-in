@@ -5,14 +5,23 @@ use std::{
 
 use chrono::{Datelike, Local, TimeDelta};
 
-use crate::time::{
-    ArgParseError, DAY_IN_SECS, HOUR_IN_SECS, MIN_IN_SECS, TimeDeltaFormatter, TimeKind,
-    WEEK_IN_SECS, split_snippet,
+use crate::{
+    parse::{ArgParseError, split_snippet},
+    time::{DAY_IN_SECS, HOUR_IN_SECS, MIN_IN_SECS, TimeKind, WEEK_IN_SECS},
 };
 
-mod time;
+pub mod arg;
+pub mod format;
+pub mod parse;
+pub mod time;
 
-fn main() -> color_eyre::Result<()> {
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, thiserror::Error)]
+#[error("Error {0}")]
+pub struct StaticStrError(pub &'static str);
+
+#[expect(dead_code)]
+#[deprecated]
+fn old_main() -> color_eyre::Result<()> {
     let args = env::args();
 
     let mut delta_secs = 0;
@@ -36,7 +45,7 @@ fn main() -> color_eyre::Result<()> {
                 continue;
             }
             _ => {}
-        };
+        }
 
         let secs = match split_snippet(&arg) {
             Ok((k, n)) => match k {
@@ -69,9 +78,11 @@ fn main() -> color_eyre::Result<()> {
                             i128::from(n) * i128::from(DAY_IN_SECS)
                         )))?
                 }
+                _ => unimplemented!("changeable time units"),
             },
             Err(e) => {
-                return Err(e.into());
+                eprintln!("{e}");
+                continue;
             }
         };
 
@@ -111,8 +122,13 @@ fn main() -> color_eyre::Result<()> {
         })?;
     }
 
+    #[expect(deprecated)]
     if show_duration {
-        write!(&mut stdout, " in {}", TimeDeltaFormatter::seconds(secs))?;
+        write!(
+            &mut stdout,
+            " in {}",
+            time::TimeDeltaFormatter::seconds(secs)
+        )?;
     }
 
     writeln!(&mut stdout)?;

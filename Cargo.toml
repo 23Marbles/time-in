@@ -3,11 +3,15 @@ name = "timein"
 version = "0.1.0"
 edition = "2024"
 
+[[bin]]
+name = "time"
+
 [features]
 show_weeks = []
 
 [dependencies]
 chrono = "0.4.45"
+chrono-tz = "0.10.4"
 clap = { version = "4.6.6", features = ["derive"] }
 color-eyre = "0.6.5"
 num-integer = "0.1.47"
