@@ -184,14 +184,31 @@ impl std::str::FromStr for TimeFormatter {
 
 impl TimeFormatter {
     #[must_use]
-    pub fn format_time<Tz>(&self, time: &DateTime<Utc>, show_timezone: Option<&Tz>) -> String
+    pub fn format_time<Tz>(
+        &self,
+        time: &DateTime<Utc>,
+        timezone: Option<&Tz>,
+        show_timezone: bool,
+    ) -> String
     where
         Tz::Offset: Display,
         Tz: TimeZone + Display,
     {
-        match (self, show_timezone) {
-            (TimeFormatter::Utc, None) => time.format("%-H:%M:%S"),
-            (TimeFormatter::Local, None) => time.with_timezone(&Local).format("%-H:%M:%S"),
+        match (self, timezone) {
+            (TimeFormatter::Utc, None) => {
+                if show_timezone {
+                    time.format("%-H:%M:%S %Z")
+                } else {
+                    time.format("%-H:%M:%S")
+                }
+            }
+            (TimeFormatter::Local, None) => {
+                if show_timezone {
+                    time.with_timezone(&Local).format("%-H:%M:%S %Z")
+                } else {
+                    time.with_timezone(&Local).format("%-H:%M:%S")
+                }
+            }
             (TimeFormatter::Utc | TimeFormatter::Local, Some(tz)) => {
                 time.with_timezone(tz).format("%-H:%M:%S %Z")
             }
@@ -255,6 +272,7 @@ where
             self.show_timezone
                 .then_some(self.timezone.as_ref())
                 .flatten(),
+            self.show_timezone,
         );
 
         if self.show_date_first {
