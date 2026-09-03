@@ -7,7 +7,7 @@ Useful utilities for finding timings.
 Install with:
 
 ```bash
-cargo install time-in
+cargo install timein
 ```
 
 It will be installed as a binary called "time.*"
