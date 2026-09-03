@@ -2,6 +2,15 @@
 
 Useful utilities for finding timings.
 
+# Install
+
+Install with:
+
+```bash
+cargo install time-in
+```
+It will be installed as a binary called "time.*"
+
 # Modes
 
 ## In
@@ -18,12 +27,4 @@ Shows you how long until a specified time.
 
 ## Since
 
-Shows the time since a specified time.
-
-## Normalize time
-
-Finds the true duration of a naive duration of time.
-
-## Info
-
-Shows info about a time.
+An alias of `Till`
