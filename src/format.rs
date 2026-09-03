@@ -228,21 +228,34 @@ where
     Tz: TimeZone + Display + Send + Sync + FromStr + 'static,
     <Tz as FromStr>::Err: Send + Sync + Error,
 {
-    #[arg(long, default_value_t = TimeFormatter::default())]
+    /// The formating to use when formatting time values. Can be any of the following values:
+    ///  - utc (format in the utc timezone, is overridden if a timezone is specified),
+    ///  - local (format in the deault timezone, is overridden if a timezone is specified),
+    ///  - "<any>" (format with the specified format string),
+    #[arg(long, default_value_t = TimeFormatter::default(), verbatim_doc_comment)]
     pub time_formatter: TimeFormatter,
 
+    /// Whether to show the time's timezone
     #[arg(long, visible_alias = "show-tz")]
     pub show_timezone: bool,
 
     #[arg(skip)]
     pub timezone: Option<Tz>,
 
-    #[arg(long, default_value_t = DateFormatter::default())]
+    /// The formating to use when formatting date values. Can be any of the following values:
+    ///  - auto (choose either "date" or "days-from-now" automatically),
+    ///  - days-from-now (show the amount of days amd weeks this date is from today),
+    ///  - date (show the exact date of that day),
+    ///  - both (show both "date" and "days-from-now"),
+    ///  - "<any>" (format with the specified format string),
+    #[arg(long, default_value_t = DateFormatter::default(), verbatim_doc_comment)]
     pub date_formatter: DateFormatter,
 
+    /// Whether to show the weekday in the date
     #[arg(long)]
     pub show_weekday: bool,
 
+    /// Whether to show the date first (defaults to showing time first)
     #[arg(long)]
     pub show_date_first: bool,
 }
@@ -257,7 +270,6 @@ where
     pub fn with_timezone(mut self, tz: Option<Tz>) -> Self {
         self.show_timezone ^= tz.is_some();
         self.timezone = tz;
-        self.show_timezone = true;
         self
     }
 

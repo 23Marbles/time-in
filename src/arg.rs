@@ -23,12 +23,14 @@ pub struct CommonOptions {
     /// Specifies a timezone to work in
     timezone: Option<chrono_tz::Tz>,
 
+    /// Specifies the formatting to output with
     #[command(flatten)]
     format: Format<chrono_tz::Tz>,
 }
 
 #[derive(Debug, Clone, clap::Subcommand)]
 pub enum Command {
+    /// Displays the time now
     Now {
         #[command(flatten)]
         options: CommonOptions,
@@ -36,9 +38,14 @@ pub enum Command {
 
     /// Finds the datetime an amount of time in the future
     In {
-        #[arg(num_args = 1..)]
+        /// The duration, is a list of consecutive snippets parsed as value-key pairs.
+        /// These are parsed as <number><Ident> where Ident can be any of the following values:
+        /// ["years", "months", "weeks", "days", "hours", "minutes", "seconds"],
+        /// or their shorthands or singluar form
+        #[arg(num_args = 1.., verbatim_doc_comment)]
         duration: Vec<TimeUnitDur>,
 
+        /// Whether to show the duration in the output message
         #[arg(long)]
         show_duration: bool,
 
@@ -48,9 +55,14 @@ pub enum Command {
 
     /// Finds the datetime an amount of time ago
     Past {
-        #[arg(num_args = 1..)]
+        /// The duration, is a list of consecutive snippets parsed as value-key pairs.
+        /// These are parsed as <number><Ident> where Ident can be any of the following values:
+        /// ["years", "months", "weeks", "days", "hours", "minutes", "seconds"],
+        /// or their shorthands or singluar form
+        #[arg(num_args = 1.., verbatim_doc_comment)]
         duration: Vec<TimeUnitDur>,
 
+        /// Whether to show the duration in the output message
         #[arg(long)]
         show_duration: bool,
 
@@ -61,7 +73,10 @@ pub enum Command {
     /// Finds the duration to a date time.
     #[command(visible_alias = "since", visible_alias = "until", alias = "till")]
     To {
-        #[arg(num_args = 1..=2)]
+        /// This can be either a date or time, or both consecutively.
+        /// Dates take the format: yyyy-mm-dd and
+        /// time takes the format: hh:mm[:ss[.fract]] where anything in "[]" is optional
+        #[arg(num_args = 1..=2, verbatim_doc_comment)]
         datetime: Vec<TimeOrDateParser>,
 
         #[command(flatten)]
