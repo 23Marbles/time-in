@@ -255,6 +255,7 @@ where
 {
     #[must_use]
     pub fn with_timezone(mut self, tz: Option<Tz>) -> Self {
+        self.show_timezone ^= tz.is_some();
         self.timezone = tz;
         self.show_timezone = true;
         self
