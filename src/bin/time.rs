@@ -44,7 +44,7 @@ fn main() -> color_eyre::Result {
                     .expect("ambiguous or invalid local time")
                     .to_utc()
             } else {
-                naive_date_time.and_utc()
+                naive_date_time.and_local_timezone(Local).single().unwrap().to_utc()
             };
 
             let now_utc = now.to_utc();
