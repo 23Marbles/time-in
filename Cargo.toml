@@ -1,7 +1,13 @@
 [package]
 name = "timein"
+description = "This is a simple utility for finding relative times"
 version = "0.1.0"
 edition = "2024"
+readme = true
+repository = "https://github.com/23Marbles/time-in"
+license = "MIT OR Apache-2.0"
+keywords = ["time", "cli", "utility"]
+categories = ["command-line-utilities", "date-and-time"]
 
 [[bin]]
 name = "time"
