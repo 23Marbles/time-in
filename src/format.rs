@@ -87,7 +87,7 @@ impl DateFormatter {
             ) {
                 // Special names
                 (0, 0, _) => "today".to_string(),
-                (1, 0, false) => "tommorow".to_string(),
+                (1, 0, false) => "tomorrow".to_string(),
                 (1, 0, true) => "yesterday".to_string(),
 
                 // Within a week
@@ -102,7 +102,7 @@ impl DateFormatter {
                 (0, w, false) => format!("in {w} weeks"),
                 (0, w, true) => format!("{w} weeks ago"),
 
-                // Multiple weeks and singluar day
+                // Multiple weeks and singular day
                 (1, w, false) => format!("in {w} weeks and a day"),
                 (1, w, true) => format!("{w} weeks and a day ago"),
 
@@ -228,9 +228,9 @@ where
     Tz: TimeZone + Display + Send + Sync + FromStr + 'static,
     <Tz as FromStr>::Err: Send + Sync + Error,
 {
-    /// The formating to use when formatting time values. Can be any of the following values:
+    /// The formatting to use when formatting time values. Can be any of the following values:
     ///  - utc (format in the utc timezone, is overridden if a timezone is specified),
-    ///  - local (format in the deault timezone, is overridden if a timezone is specified),
+    ///  - local (format in the default timezone, is overridden if a timezone is specified),
     ///  - "<any>" (format with the specified format string),
     #[arg(long, default_value_t = TimeFormatter::default(), verbatim_doc_comment)]
     pub time_formatter: TimeFormatter,
@@ -242,7 +242,7 @@ where
     #[arg(skip)]
     pub timezone: Option<Tz>,
 
-    /// The formating to use when formatting date values. Can be any of the following values:
+    /// The formatting to use when formatting date values. Can be any of the following values:
     ///  - auto (choose either "date" or "days-from-now" automatically),
     ///  - days-from-now (show the amount of days amd weeks this date is from today),
     ///  - date (show the exact date of that day),
