@@ -120,7 +120,7 @@ fn old_main() -> color_eyre::Result<()> {
             let then_days = then.num_days_from_ce();
             match then_days - now_days {
                 0 => "today".to_string(),
-                1 => "tommorow".to_string(),
+                1 => "tomorrow".to_string(),
                 n => format!("{n} days from now"),
             }
         })?;

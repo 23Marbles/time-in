@@ -91,7 +91,7 @@ pub fn split_snippet(snippet: &str) -> Result<(TimeKind, i64), ArgParseError> {
     let count: i64 = prefix.parse().map_err(|e: ParseIntError| match e.kind() {
         IntErrorKind::Empty => ArgParseError::NoDigitPart(snippet.to_owned()),
         IntErrorKind::InvalidDigit => {
-            unreachable!("must be ascii digitor with a single '-' at the start")
+            unreachable!("must be ascii digit optionally with a single '-' at the start")
         }
         IntErrorKind::PosOverflow => ArgParseError::DigitTooLarge(prefix.to_owned()),
         IntErrorKind::NegOverflow => unreachable!("does not have a negative part"),
