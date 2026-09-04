@@ -87,7 +87,7 @@ impl DateFormatter {
             ) {
                 // Special names
                 (0, 0, _) => "today".to_string(),
-                (1, 0, false) => "tommorow".to_string(),
+                (1, 0, false) => "tomorrow".to_string(),
                 (1, 0, true) => "yesterday".to_string(),
 
                 // Within a week
